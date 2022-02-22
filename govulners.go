@@ -43,14 +43,14 @@ type Package struct {
 	Version  string
 }
 
-type Vulenrs struct {
+type Vulners struct {
 	apikey string
 	debug  bool
 	logger Logger
 	http   HTTPClient
 }
 
-func New(apikey string, opts ...Option) *Vulenrs {
+func New(apikey string, opts ...Option) *Vulners {
 	options := Options{
 		logger:     log.Default(),
 		httpClient: http.DefaultClient,
@@ -59,7 +59,7 @@ func New(apikey string, opts ...Option) *Vulenrs {
 		opt(&options)
 	}
 
-	return &Vulenrs{
+	return &Vulners{
 		apikey: apikey,
 		logger: options.logger,
 		http:   options.httpClient,
@@ -67,11 +67,11 @@ func New(apikey string, opts ...Option) *Vulenrs {
 }
 
 // SetDebug set debug flag
-func (v *Vulenrs) SetDebug(debug bool) {
+func (v *Vulners) SetDebug(debug bool) {
 	v.debug = debug
 }
 
-func (v *Vulenrs) do(request *http.Request, dst interface{}) error {
+func (v *Vulners) do(request *http.Request, dst interface{}) error {
 	response, err := v.http.Do(request)
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func (v *Vulenrs) do(request *http.Request, dst interface{}) error {
 	return json.Unmarshal(r.Data, dst)
 }
 
-func (v *Vulenrs) handleError(r Response) error {
+func (v *Vulners) handleError(r Response) error {
 	e := Error{}
 	err := json.Unmarshal(r.Data, &e)
 	if err != nil {
@@ -119,7 +119,7 @@ func (v *Vulenrs) handleError(r Response) error {
 	return e
 }
 
-func (v *Vulenrs) get(path string, values url.Values, dst interface{}) error {
+func (v *Vulners) get(path string, values url.Values, dst interface{}) error {
 	values.Add("apiKey", v.apikey)
 	request, err := http.NewRequest(http.MethodGet, apiURL+path+"?"+values.Encode(), nil)
 	if err != nil {
@@ -132,7 +132,7 @@ func (v *Vulenrs) get(path string, values url.Values, dst interface{}) error {
 	return v.do(request, dst)
 }
 
-func (v *Vulenrs) post(path string, data map[string]interface{}, dst interface{}) error {
+func (v *Vulners) post(path string, data map[string]interface{}, dst interface{}) error {
 	data["apiKey"] = v.apikey
 	body, err := json.Marshal(data)
 	if err != nil {
@@ -152,7 +152,7 @@ func (v *Vulenrs) post(path string, data map[string]interface{}, dst interface{}
 	return v.do(request, dst)
 }
 
-func (v *Vulenrs) search(query string, skip, size int, fields []string, dst interface{}) error {
+func (v *Vulners) search(query string, skip, size int, fields []string, dst interface{}) error {
 	return v.post("/api/v3/search/lucene/", map[string]interface{}{
 		"query":  query,
 		"skip":   skip,
@@ -162,7 +162,7 @@ func (v *Vulenrs) search(query string, skip, size int, fields []string, dst inte
 }
 
 // GetSoftwareVulnerabilities find software vulnerabilities using name and version.
-func (v *Vulenrs) GetSoftwareVulnerabilities(name, version string) ([]CVE, error) {
+func (v *Vulners) GetSoftwareVulnerabilities(name, version string) ([]CVE, error) {
 	response := SearchResponse{}
 	err := v.post("/api/v3/burp/software/", map[string]interface{}{
 		"type":     "software",
@@ -183,7 +183,7 @@ func (v *Vulenrs) GetSoftwareVulnerabilities(name, version string) ([]CVE, error
 
 // GetCPEVulnerabilities find software vulnerabilities using CPE string.
 // See CPE references at https://cpe.mitre.org/specification/
-func (v *Vulenrs) GetCPEVulnerabilities(cpe string) ([]CVE, error) {
+func (v *Vulners) GetCPEVulnerabilities(cpe string) ([]CVE, error) {
 	version, err := getCPEversion(cpe)
 	if err != nil {
 		return nil, err
@@ -208,7 +208,7 @@ func (v *Vulenrs) GetCPEVulnerabilities(cpe string) ([]CVE, error) {
 }
 
 // GetMultipleBulletins fetch multiple bulletins by ids.
-func (v *Vulenrs) GetMultipleBulletins(ids []string, fields []string) (map[string]CVE, error) {
+func (v *Vulners) GetMultipleBulletins(ids []string, fields []string) (map[string]CVE, error) {
 	if len(fields) == 0 {
 		fields = defaultFields
 	}
@@ -226,7 +226,7 @@ func (v *Vulenrs) GetMultipleBulletins(ids []string, fields []string) (map[strin
 }
 
 // GetBulletin fetch bulletin by id.
-func (v *Vulenrs) GetBulletin(id string, fields []string) (*CVE, error) {
+func (v *Vulners) GetBulletin(id string, fields []string) (*CVE, error) {
 	cves, err := v.GetMultipleBulletins([]string{id}, fields)
 	if err != nil {
 		return nil, err
